@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Tuple, List
 from math import ceil
 
-from .utils import parse_base128_int
+from asn1.utils import parse_base128_int
 
 
 @dataclass

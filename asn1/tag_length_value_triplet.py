@@ -4,7 +4,7 @@ from enum import IntEnum
 from typing import Tuple, List
 from math import ceil, log2
 
-from .utils import parse_base128_int
+from asn1.utils import parse_base128_int
 
 
 class TagClass(IntEnum):

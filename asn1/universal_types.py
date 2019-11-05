@@ -1,32 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import ClassVar, List, Tuple
+from typing import ClassVar, List, Tuple, Optional
 from enum import Enum
 from math import ceil, log2
 
-from .oid import OID
-from .asn1_type import ASN1Type
-from .tag_length_value_triplet import Tag, TagLengthValueTriplet
-
-
-# TODO: Add More?
-#     UNIVERSAL 1 Boolean type
-#     UNIVERSAL 2 Integer type
-#     UNIVERSAL 3 Bitstring type
-#     UNIVERSAL 4 Octetstring type
-#     UNIVERSAL 5 Null type
-#     UNIVERSAL 6 Object identifier type
-#     UNIVERSAL 7 Object descriptor type
-#     UNIVERSAL 8 External type
-#     UNIVERSAL 9 Real type
-#     UNIVERSAL 10 Enumerated type
-#     UNIVERSAL 12 to 15 Reserved forfuture versions of this
-#     Recommendation
-#     UNIVERSAL 16 Sequence and Sequence-of types
-#     UNIVERSAL 17 Set and Set-of types
-#     UNIVERSAL 18 to 22, 25 to 27 Character string types
-#     UNIVERSAL 23, 24 Time types
-#     UNIVERSAL 28- . . . Reserved for future versions of this
+from asn1.oid import OID
+from asn1.asn1_type import ASN1Type
+from asn1.tag_length_value_triplet import Tag, TagLengthValueTriplet
 
 
 class ASN1UniversalTag(Enum):
@@ -36,6 +16,7 @@ class ASN1UniversalTag(Enum):
     OCTET_STRING = Tag.from_bytes(data=b'\x04')
     NULL = Tag.from_bytes(data=b'\x05')
     OBJECT_IDENTIFIER = Tag.from_bytes(data=b'\x06')
+    ENUMERATED = Tag.from_bytes(data=b'\x0A')
     UTF8String = Tag.from_bytes(data=b'\x0C')
     PrintableString = Tag.from_bytes(data=b'\x13')
     TeletexString = Tag.from_bytes(data=b'\x14')
@@ -91,6 +72,26 @@ class Sequence(ASN1Type):
 
     def tlv_triplet(self) -> TagLengthValueTriplet:
         return TagLengthValueTriplet(tag=self.tag, value=b''.join(bytes(element) for element in self.elements))
+
+
+@dataclass
+class SequenceOf(Sequence):
+    # NOTE: The `SEQUENCE_OF` tag value is identical with `SEQUENCE`s.
+    tag: ClassVar[Tag] = ASN1UniversalTag.SEQUENCE_OF.value
+
+    @classmethod
+    def _from_tlv_triplet(cls, tlv_triplet: TagLengthValueTriplet) -> SequenceOf:
+        sequence_of: SequenceOf = cls._from_tlv_triplet(tlv_triplet=tlv_triplet)
+
+        observed_tag: Optional[Tag] = None
+        for element in sequence_of.elements:
+            if observed_tag is None:
+                observed_tag = element.tag
+            if element.tag != observed_tag:
+                # TODO: Use proper exception.
+                raise ValueError
+
+        return sequence_of
 
 
 @dataclass
@@ -152,10 +153,49 @@ class OctetString(ASN1Type):
         return TagLengthValueTriplet(tag=self.tag, value=self.data)
 
 
+@dataclass
+class Integer(ASN1Type):
+    tag: ClassVar[Tag] = ASN1UniversalTag.INTEGER.value
+    int_value: int
+
+    @classmethod
+    def _from_tlv_triplet(cls, tlv_triplet: TagLengthValueTriplet) -> Integer:
+        return cls(int_value=int.from_bytes(bytes=tlv_triplet.value, byteorder='big', signed=True))
+
+    def tlv_triplet(self) -> TagLengthValueTriplet:
+
+        if self.int_value < 0:
+            return TagLengthValueTriplet(
+                tag=self.tag,
+                value=self.int_value.to_bytes(
+                    length=(self.int_value.bit_length() + 8) // 8,
+                    byteorder='big',
+                    signed=True
+                )
+            )
+        else:
+            bytes_value: bytes = self.int_value.to_bytes(
+                length=(self.int_value.bit_length() + 7) // 8,
+                byteorder='big',
+            )
+            if 0b10000000 & bytes_value[0]:
+                bytes_value = b'\x00' + bytes_value
+            return TagLengthValueTriplet(tag=self.tag, value=bytes_value)
+
+
+@dataclass
+class Enumerated(Integer):
+    tag: ClassVar[Tag] = ASN1UniversalTag.ENUMERATED
+
+
+# TODO: Move this.
 ASN1Type._tag_to_class = {
     ASN1UniversalTag.BOOLEAN.value: Boolean,
     ASN1UniversalTag.OBJECT_IDENTIFIER.value: ObjectIdentifier,
     ASN1UniversalTag.SEQUENCE.value: Sequence,
+    ASN1UniversalTag.SEQUENCE_OF.value: SequenceOf,
     ASN1UniversalTag.BIT_STRING.value: BitString,
-    ASN1UniversalTag.OCTET_STRING: OctetString
+    ASN1UniversalTag.OCTET_STRING.value: OctetString,
+    ASN1UniversalTag.INTEGER.value: Integer,
+    ASN1UniversalTag.ENUMERATED.value: Enumerated
 }

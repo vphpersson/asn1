@@ -13,16 +13,15 @@ class ASN1Type(ABC):
 
     @abstractmethod
     def tlv_triplet(self) -> TagLengthValueTriplet:
-        pass
+        raise NotImplementedError
 
     @classmethod
     @abstractmethod
     def _from_tlv_triplet(cls, tlv_triplet: TagLengthValueTriplet) -> ASN1Type:
-        pass
+        raise NotImplementedError
 
     @classmethod
     def from_tlv_triplet(cls, tlv_triplet: TagLengthValueTriplet) -> ASN1Type:
-
         if cls != ASN1Type:
             if cls.tag != tlv_triplet.tag:
                 # TODO: Use proper exception.
