@@ -19,7 +19,7 @@ class TagForm(IntEnum):
     CONSTRUCTED = 1
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Tag:
     tag_class: TagClass
     tag_form: TagForm

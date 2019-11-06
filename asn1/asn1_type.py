@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import ClassVar, Dict, Type
 
-from .tag_length_value_triplet import Tag, TagLengthValueTriplet
+from asn1.tag_length_value_triplet import Tag, TagLengthValueTriplet
 
 
 @dataclass
 class ASN1Type(ABC):
     tag: ClassVar[Tag] = NotImplemented
-    _tag_to_class: ClassVar[Dict[Tag, Type[ASN1Type]]] = NotImplemented
+    _tag_to_class: ClassVar[Dict[Tag, Type[ASN1Type]]] = {}
 
     @abstractmethod
     def tlv_triplet(self) -> TagLengthValueTriplet:
@@ -39,3 +39,8 @@ class ASN1Type(ABC):
 
     def __len__(self) -> int:
         return len(self.tlv_triplet())
+
+
+def register_asn1_type(cls: Type[ASN1Type]) -> Type[ASN1Type]:
+    cls._tag_to_class[cls.tag] = cls
+    return cls

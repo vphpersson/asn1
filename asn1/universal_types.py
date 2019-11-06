@@ -5,7 +5,7 @@ from enum import Enum
 from math import ceil, log2
 
 from asn1.oid import OID
-from asn1.asn1_type import ASN1Type
+from asn1.asn1_type import ASN1Type, register_asn1_type
 from asn1.tag_length_value_triplet import Tag, TagLengthValueTriplet
 
 
@@ -29,6 +29,7 @@ class ASN1UniversalTag(Enum):
 
 
 @dataclass
+@register_asn1_type
 class Boolean(ASN1Type):
     truth_value: bool
     tag: ClassVar[Tag] = ASN1UniversalTag.BOOLEAN.value
@@ -42,6 +43,7 @@ class Boolean(ASN1Type):
 
 
 @dataclass
+@register_asn1_type
 class ObjectIdentifier(ASN1Type):
     oid: OID
     tag: ClassVar[Tag] = ASN1UniversalTag.OBJECT_IDENTIFIER.value
@@ -55,6 +57,7 @@ class ObjectIdentifier(ASN1Type):
 
 
 @dataclass
+@register_asn1_type
 class Sequence(ASN1Type):
     elements: Tuple[TagLengthValueTriplet, ...]
     tag: ClassVar[Tag] = ASN1UniversalTag.SEQUENCE.value
@@ -75,6 +78,7 @@ class Sequence(ASN1Type):
 
 
 @dataclass
+@register_asn1_type
 class SequenceOf(Sequence):
     # NOTE: The `SEQUENCE_OF` tag value is identical with `SEQUENCE`s.
     tag: ClassVar[Tag] = ASN1UniversalTag.SEQUENCE_OF.value
@@ -95,6 +99,7 @@ class SequenceOf(Sequence):
 
 
 @dataclass
+@register_asn1_type
 class BitString(ASN1Type):
     tag: ClassVar[Tag] = ASN1UniversalTag.BIT_STRING.value
     data: bytes
@@ -141,6 +146,7 @@ class BitString(ASN1Type):
 
 
 @dataclass
+@register_asn1_type
 class OctetString(ASN1Type):
     tag: ClassVar[Tag] = ASN1UniversalTag.OCTET_STRING.value
     data: bytes
@@ -154,6 +160,7 @@ class OctetString(ASN1Type):
 
 
 @dataclass
+@register_asn1_type
 class Integer(ASN1Type):
     tag: ClassVar[Tag] = ASN1UniversalTag.INTEGER.value
     int_value: int
@@ -168,6 +175,7 @@ class Integer(ASN1Type):
             return TagLengthValueTriplet(
                 tag=self.tag,
                 value=self.int_value.to_bytes(
+                    # NOTE: Using one more bit for rounding upwards to take signing into consideration.
                     length=(self.int_value.bit_length() + 8) // 8,
                     byteorder='big',
                     signed=True
@@ -175,6 +183,7 @@ class Integer(ASN1Type):
             )
         else:
             bytes_value: bytes = self.int_value.to_bytes(
+                # NOTE: Using `+ 7` to round to upwards.
                 length=(self.int_value.bit_length() + 7) // 8,
                 byteorder='big',
             )
@@ -183,19 +192,6 @@ class Integer(ASN1Type):
             return TagLengthValueTriplet(tag=self.tag, value=bytes_value)
 
 
-@dataclass
+@register_asn1_type
 class Enumerated(Integer):
-    tag: ClassVar[Tag] = ASN1UniversalTag.ENUMERATED
-
-
-# TODO: Move this.
-ASN1Type._tag_to_class = {
-    ASN1UniversalTag.BOOLEAN.value: Boolean,
-    ASN1UniversalTag.OBJECT_IDENTIFIER.value: ObjectIdentifier,
-    ASN1UniversalTag.SEQUENCE.value: Sequence,
-    ASN1UniversalTag.SEQUENCE_OF.value: SequenceOf,
-    ASN1UniversalTag.BIT_STRING.value: BitString,
-    ASN1UniversalTag.OCTET_STRING.value: OctetString,
-    ASN1UniversalTag.INTEGER.value: Integer,
-    ASN1UniversalTag.ENUMERATED.value: Enumerated
-}
+    tag: ClassVar[Tag] = ASN1UniversalTag.ENUMERATED.value
