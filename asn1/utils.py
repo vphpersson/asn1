@@ -1,6 +1,5 @@
+from __future__ import annotations
 from typing import Tuple, List
-
-from asn1.tag_length_value_triplet import TagLengthValueTriplet
 
 
 def parse_base128_int(data: bytes) -> Tuple[int, int]:
@@ -14,6 +13,9 @@ def parse_base128_int(data: bytes) -> Tuple[int, int]:
 
 
 def extract_elements(elements_data: bytes) -> List[TagLengthValueTriplet]:
+
+    from asn1.tag_length_value_triplet import TagLengthValueTriplet
+
     elements: List[TagLengthValueTriplet] = []
     offset = 0
 

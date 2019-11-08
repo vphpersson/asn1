@@ -80,11 +80,12 @@ class TagLengthValueTriplet:
         if data[0] & 0b10000000:
             num_length_bytes = data[0] & 0b01111111
             num_value_bytes = int.from_bytes(bytes=data[1:1+num_length_bytes], byteorder='big')
+            value_offset = 1 + num_length_bytes
         else:
-            num_length_bytes = 1
+            value_offset = 1
             num_value_bytes = data[0] & 0b01111111
 
-        return num_length_bytes, num_value_bytes
+        return value_offset, num_value_bytes
 
     @property
     def value_length(self):
@@ -94,11 +95,11 @@ class TagLengthValueTriplet:
     def from_bytes(cls, data: bytes):
         tag = Tag.from_bytes(data=data)
         remaining_data = data[len(tag):]
-        num_length_bytes, num_value_bytes = cls._extract_lengths(data=remaining_data)
+        value_offset, num_value_bytes = cls._extract_lengths(data=remaining_data)
 
         return cls(
             tag=tag,
-            value=remaining_data[num_length_bytes:num_length_bytes+num_value_bytes]
+            value=remaining_data[value_offset:value_offset+num_value_bytes]
         )
 
     def __bytes__(self) -> bytes:
