@@ -7,6 +7,7 @@ from math import ceil, log2
 from asn1.oid import OID
 from asn1.asn1_type import ASN1Type, register_asn1_type
 from asn1.tag_length_value_triplet import Tag, TagLengthValueTriplet
+from asn1.utils import extract_elements
 
 
 class ASN1UniversalTag(Enum):
@@ -64,14 +65,7 @@ class Sequence(ASN1Type):
 
     @classmethod
     def _from_tlv_triplet(cls, tlv_triplet: TagLengthValueTriplet) -> Sequence:
-        elements: List[TagLengthValueTriplet] = []
-        offset = 0
-        while offset < len(tlv_triplet.value):
-            element_tlv_triplet = TagLengthValueTriplet.from_bytes(tlv_triplet.value[offset:])
-            elements.append(element_tlv_triplet)
-            offset += len(element_tlv_triplet)
-
-        return cls(elements=tuple(elements))
+        return cls(elements=tuple(extract_elements(elements_data=tlv_triplet.value)))
 
     def tlv_triplet(self) -> TagLengthValueTriplet:
         return TagLengthValueTriplet(tag=self.tag, value=b''.join(bytes(element) for element in self.elements))
